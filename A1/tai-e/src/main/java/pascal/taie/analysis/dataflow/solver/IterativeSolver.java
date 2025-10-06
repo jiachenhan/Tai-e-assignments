@@ -24,6 +24,7 @@ package pascal.taie.analysis.dataflow.solver;
 
 import pascal.taie.analysis.dataflow.analysis.DataflowAnalysis;
 import pascal.taie.analysis.dataflow.fact.DataflowResult;
+import pascal.taie.analysis.dataflow.fact.SetFact;
 import pascal.taie.analysis.graph.cfg.CFG;
 
 class IterativeSolver<Node, Fact> extends Solver<Node, Fact> {
@@ -40,5 +41,25 @@ class IterativeSolver<Node, Fact> extends Solver<Node, Fact> {
     @Override
     protected void doSolveBackward(CFG<Node> cfg, DataflowResult<Node, Fact> result) {
         // TODO - finish me
+
+        boolean loopFlag = true;
+        while (loopFlag) {
+            loopFlag = false;
+            for (Node node : cfg.getNodes()) {
+                Fact inFact = result.getInFact(node);
+                Fact outFact = (Fact) new SetFact<>();
+                cfg.getSuccsOf(node).forEach(succNode -> {
+                    Fact mergedInFact = result.getInFact(succNode);
+                    analysis.meetInto(mergedInFact, outFact);
+                });
+                result.setOutFact(node, outFact);
+
+                boolean changed = analysis.transferNode(node, inFact, outFact);
+                result.setInFact(node, inFact);
+                if (changed) {
+                    loopFlag =  true;
+                }
+            }
+        }
     }
 }
